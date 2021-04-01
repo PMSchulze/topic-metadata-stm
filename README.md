@@ -1,6 +1,6 @@
 # Exploring Topic-Metadata Relationships with the STM: A Bayesian Approach
 
-In this study, we estimate a [Structural Topic Model (STM)](https://doi.org/10.1080/01621459.2016.1141684) (Roberts et al., 2016) and explore the relationship between topic proportions and metadata, providing [enhanced analytical tools](https://github.com/PMSchulze/stmprevalence) with improved statistical properties.
+In this study, we estimate a [Structural Topic Model (STM)](https://doi.org/10.1080/01621459.2016.1141684) (Roberts et al., 2016) and explore the relationship between topic proportions and metadata, providing enhanced analytical tools with improved statistical properties.
 
 ### Folder Structure
 
