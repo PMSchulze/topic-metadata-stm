@@ -21,9 +21,9 @@ if (length(not_installed) > 0) {
 }
 lapply(packages_required, library, character.only = TRUE)
 
-# Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS=TRUE) # uncomment if stmprevalence doesn't install
-devtools::install_github("PMSchulze/stmprevalence") # install from github
-library(stmprevalence)
+# install and load our package stmprevalence
+install.packages("stmprevalence_0.1.0.tgz", repos = NULL, type ="source")
+library("stmprevalence")
 
 # set working directory (to folder where this code file is saved)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
