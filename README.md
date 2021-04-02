@@ -10,6 +10,6 @@ We assume the following folder structure for this project:
     ├── code       # Contains one R file (emnlp_2021.R), used to estimate topic model and topic-metadata relationships
     ├── data       # Contains data relevant to our analyses (e.g., estimated topic model)
     │              #   - Data was created with emnlp_2021.R (see description of data in code file)
-    │              #   - Raw data (Twitter posts + metadata) can be found ```[here](https://figshare.com/s/7a728fcb6d67a67fc3d6)```
+    │              #   - Raw data (Twitter posts + metadata) can be found on https://figshare.com/s/7a728fcb6d67a67fc3d6
     ├── plots      # Contains all plots from the paper; code to create plots can be found in emnlp_2021.R
 ```
