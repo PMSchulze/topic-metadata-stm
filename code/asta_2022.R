@@ -6,7 +6,7 @@
 os <- Sys.info()[["sysname"]] # get operating system information
 itype <- ifelse(os == "Linux", "source", "binary") # set corresponding installation type
 packages_required <- c(
-  "devtools", "ggplot2", "grid", "gridExtra", "scales", "stm", "tidyverse"
+  "devtools", "ggplot2", "grid", "gridExtra", "scales", "stm", "tidyverse", "wordcloud"
 )
 not_installed <- packages_required[!packages_required %in%
                                      installed.packages()[, "Package"]]
@@ -22,7 +22,9 @@ if (length(not_installed) > 0) {
 lapply(packages_required, library, character.only = TRUE)
 
 # install and load our package stmprevalence
-install.packages("stmprevalence_0.1.0.tgz", repos = NULL, type ="source")
+# install.packages("devtools")
+# devtools::install_github("PMSchulze/stmprevalence")
+# install.packages("stmprevalence_0.1.0.tgz", repos = NULL, type ="source")
 library("stmprevalence")
 
 # set working directory (to folder where this code file is saved)
@@ -99,8 +101,8 @@ plot_residual <- ggplot(data = searchK_data$results, aes(x = K, y = residual)) +
         axis.text.y = element_text(vjust = 1, size = 14, hjust = 1),
         axis.title.y = element_text(size = 18, face = "bold"))
 
-# create plot and save as pdf
-pdf(file = "../plots/searchK.pdf", width = 9, height = 7.5)
+# create plot and save as jpeg
+jpeg(file = "../plots/searchK.jpeg", width = 9*300, height = 7.5*300, units = "px", res = 300)
 
 gridExtra::grid.arrange(plot_heldout, plot_semcoh, plot_exclus, plot_residual, ncol=2)
 
@@ -137,12 +139,44 @@ mod_prev <- readRDS("../data/mod_prev_monthly.rds")
 # ---------------------------------------- Word Cloud ------------------------------------------
 # ----------------------------------------------------------------------------------------------
 
-# word cloud for selected topic
-pdf(file = "../plots/wordcloud_t6.pdf", width = 3.6, height = 3)
+# word cloud for selected topics
+
+## topic 1 (Right/Nationalist)
+jpeg(file = "../plots/wordcloud_t1.jpeg", width = 3.6*300, height = 3*300, units = "px", res = 300)
+
+stm::cloud(mod_prev, topic = 1, scale = c(2.0, 0.25))
+
+dev.off()
+
+## topic 4 (Social/Housing)
+jpeg(file = "../plots/wordcloud_t4.jpeg", width = 1080, height = 900, units = "px", res = 300)
+
+stm::cloud(mod_prev, topic = 4, scale = c(2.0, 0.25))
+
+dev.off()
+
+## topic 6 (Climate Protection)
+jpeg(file = "../plots/wordcloud_t6.jpeg", width = 1080, height = 900, units = "px", res = 300)
 
 stm::cloud(mod_prev, topic = 6, scale = c(2.0, 0.25))
 
 dev.off()
+
+## topic 7 (Europe)
+jpeg(file = "../plots/wordcloud_t7.jpeg", width = 1080, height = 900, units = "px", res = 300)
+
+stm::cloud(mod_prev, topic = 7, scale = c(2.0, 0.25))
+
+dev.off()
+
+# ----------------------------------------------------------------------------------------------
+# ----------------------------------------- Top words ------------------------------------------
+# ----------------------------------------------------------------------------------------------
+
+# top 5 words for selected topics
+
+topics <- c(1,4,6,7)
+stm::labelTopics(mod_prev, n = 5)[1]$prob[topics,]
 
 # ----------------------------------------------------------------------------------------------
 # ---------------------------------- Plots with estimateEffect ---------------------------------
@@ -154,8 +188,8 @@ varlist <- c(
 )
 # load full names of prevalence covariates
 varlist_fullnames <- c(
-  "time", "party", "federal state", "immigrants (%)", "GDP per capita (EUR)", 
-  "unemployement rate (%)", "vote share (%)"
+  "Time", "Party", "Federal State", "Immigrants (%)", "GDP per capita (EUR)", 
+  "Unemployment Rate (%)", "Vote Share (%)"
 )
 formula <- 1:15~Partei+ Bundesland + s(t, df = 5) + s(Struktur_4, df = 5) + 
   s(Struktur_22, df = 5) + s(Struktur_42, df = 5) + s(Struktur_54, df = 5)
@@ -168,16 +202,16 @@ prep <- stm::estimateEffect(
   uncertainty = "Global"
 )
 
-# create plot using estimateEffect and save as pdf
+# create plot using estimateEffect and save as jpeg
 times <- c("2017-09", "2018-09", "2019-09")
-pdf(file = "../plots/estimateEffect_t6.pdf", width = 9, height = 7.5)
+jpeg(file = "../plots/estimateEffect_t6.jpeg", width = 9*300, height = 7.5*300, units = "px", res = 300)
 
 plot(prep, "t", method = "continuous", topics = 6,
      printlegend = F, xlab = "", xaxt="n", ylab = "", linecol = "black", yaxt="n")
 axis(1, at=c(0,12,24), labels=times, cex.axis=1.2)
 axis(2, cex.axis=1.2)
-mtext("date", side=1, line=2.5, cex=1.7, font = 2)
-mtext("topic proportion", side=2, line=2.5, cex=1.7, font = 2)
+mtext("Date", side=1, line=2.5, cex=1.7, font = 1)
+mtext("Expected Topic Proportion", side=2, line=2.5, cex=1.7, font = 1)
 
 dev.off()
 
@@ -198,40 +232,66 @@ preds_beta <- lapply(varlist,
                      function(v) stmprevalence::predict_props(all_betas, v, formula, data$meta))
 names(preds_beta) <- varlist
 
-# create plot and save as pdf
-pdf(file = "../plots/freqbeta_t6.pdf", width = 9, height = 7.5)
+topics <- c(1,4,6,7)
+topic_names <- c(
+  "Right/Nationalist", 
+  "",
+  "",
+  "Social/Housing",
+  "",
+  "Climate Protection", 
+  "Europe",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "")
 
-for(v in setdiff(varlist, c("Partei", "Bundesland"))){
-  plot_nam <- paste0("plot_beta_", v)
-  assign(plot_nam, ggplot(preds_beta[[v]]$Topic6, aes(!!as.symbol(v))) + 
-           geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = "grey70") +
-           xlab(varlist_fullnames[varlist==v]) +
-           ylab("topic proportion") +
-           geom_line(aes(y = proportion)) +
-           scale_x_continuous(labels = scales::comma) +
-           theme(axis.text.x = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.x = element_text(size = 18, face = "bold"),
-                 axis.text.y = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.y = element_text(size = 18, face = "bold")))
+# create plots and save as jpeg
+
+for(topic in topics) {
+  
+  jpeg(file = paste0("../plots/freqbeta_t", topic, ".jpeg"), width = 9*300, height = 7.5*300, units = "px", res = 300)
+  
+  for(v in setdiff(varlist, c("Partei", "Bundesland"))){
+    plot_nam <- paste0("plot_beta_", v)
+    assign(plot_nam, ggplot(preds_beta[[v]][[paste0("Topic", topic)]], aes(!!as.symbol(v))) + 
+             geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper), fill = "grey70") +
+             xlab(varlist_fullnames[varlist==v]) +
+             ylab("Expected Topic Proportion") +
+             geom_line(aes(y = proportion)) +
+             scale_x_continuous(labels = scales::comma) +
+             theme(axis.text.x = element_text(vjust = 1, size = 14, hjust = 1),
+                   axis.title.x = element_text(size = 18),
+                   axis.text.y = element_text(vjust = 1, size = 14, hjust = 1),
+                   axis.title.y = element_text(size = 18)))
+  }
+  ## change axis labeling for time effects
+  ticks_date <- data.frame(breaks = c(1,13,25), labels = 0)
+  for (i in ticks_date$breaks) ticks_date[ticks_date["breaks"]==i, "labels"] <- 
+    (data$meta$Datum[which(data$meta$t == i)] %>% unique)
+  plot_beta_Date <- plot_beta_t + 
+    scale_x_continuous(name = "Date", breaks = ticks_date$breaks, labels = ticks_date$labels)
+  ## combine all plots
+  gridExtra::grid.arrange(
+    plot_beta_Date, plot_beta_Struktur_4, plot_beta_Struktur_22, plot_beta_Struktur_42,
+    ncol=2,
+    top = textGrob(topic_names[topic], gp = gpar(fontsize = 20, fontface = "bold"))
+  )
+
+  dev.off()
+
 }
-## change axis labeling for time effects
-ticks_date <- data.frame(breaks = c(1,13,25), labels = 0)
-for (i in ticks_date$breaks) ticks_date[ticks_date["breaks"]==i, "labels"] <- 
-  (data$meta$Datum[which(data$meta$t == i)] %>% unique)
-plot_beta_Date <- plot_beta_t + 
-  scale_x_continuous(name = "date", breaks = ticks_date$breaks, labels = ticks_date$labels)
-## combine all plots
-gridExtra::grid.arrange(
-  plot_beta_Date, plot_beta_Struktur_4, plot_beta_Struktur_22, plot_beta_Struktur_42, ncol=2
-)
 
-dev.off()
-
-# ----------------------------------------------------------------------------------------------
+ # ----------------------------------------------------------------------------------------------
 # ---------------------------- Plots with stmprevalence: Bayesian ------------------------------
 # ----------------------------------------------------------------------------------------------
 
 # select topic 6 and covariates
+topic <- 6
 formula <- 6~Partei+ Bundesland + s(t, df = 5) + s(Struktur_4, df = 5) + 
   s(Struktur_22, df = 5) + s(Struktur_42, df = 5) + s(Struktur_54, df = 5)
 metadata <- data$meta[varlist]
@@ -264,30 +324,32 @@ preds_beta_bayes_95 <- readRDS("../data/preds_beta_bayes_95.rds")
 preds_beta_bayes_90 <- readRDS("../data/preds_beta_bayes_90.rds")
 preds_beta_bayes_85 <- readRDS("../data/preds_beta_bayes_85.rds")
 
-# create plot (without credible intervals) and save as pdf
-pdf(file = "../plots/stanbeta_t6_noCI.pdf", width = 9, height = 7.5)
+# create plot (without credible intervals) and save as jpeg
+jpeg(file = "../plots/stanbeta_t6_noCI.jpeg", width = 9*300, height = 7.5*300, units = "px", res = 300)
 
 for(v in setdiff(varlist, c("Partei", "Bundesland"))){
   plot_nam <- paste0("plot_betabayes_", v)
-  assign(plot_nam, ggplot(preds_beta_bayes_95[[v]]$Topic6, aes(x = !!as.symbol(v), y = proportion)) +
+  assign(plot_nam, ggplot(preds_beta_bayes_95[[v]][[paste0("Topic", topic)]], aes(x = !!as.symbol(v), y = proportion)) +
            geom_smooth(color = "black", method = "loess", se = FALSE, size = 0.8) +
-           ylab("topic proportion") +
+           ylab("Expected Topic Proportion") +
            xlab(varlist_fullnames[varlist==v]) + 
            scale_x_continuous(labels = scales::comma) +
            theme(axis.text.x = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.x = element_text(size = 18, face = "bold"),
+                 axis.title.x = element_text(size = 18),
                  axis.text.y = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.y = element_text(size = 18, face = "bold")))
+                 axis.title.y = element_text(size = 18)))
 }
 ## change axis labeling for time effects
 ticks_date <- data.frame(breaks = c(1,13,25), labels = 0)
 for (i in ticks_date$breaks) ticks_date[ticks_date["breaks"]==i, "labels"] <- 
   (data$meta$Datum[which(data$meta$t == i)] %>% unique)
 plot_betabayes_Date <- plot_betabayes_t + 
-  scale_x_continuous(name = "date", breaks = ticks_date$breaks, labels = ticks_date$labels)
+  scale_x_continuous(name = "Date", breaks = ticks_date$breaks, labels = ticks_date$labels)
 ## combine all plots
 gridExtra::grid.arrange(plot_betabayes_Date, plot_betabayes_Struktur_4, 
-                        plot_betabayes_Struktur_22, plot_betabayes_Struktur_42, ncol=2)
+                        plot_betabayes_Struktur_22, plot_betabayes_Struktur_42, 
+                        ncol=2,
+                        top = textGrob(topic_names[topic], gp = gpar(fontsize = 20, fontface = "bold")))
 
 dev.off()
 
@@ -313,8 +375,8 @@ preds_beta_bayes_95$Struktur_42$Topic6$ci_upper_85 <- preds_beta_bayes_85$Strukt
 preds_beta_bayes_95$Struktur_54$Topic6$ci_lower_85 <- preds_beta_bayes_85$Struktur_54$Topic6$ci_lower
 preds_beta_bayes_95$Struktur_54$Topic6$ci_upper_85 <- preds_beta_bayes_85$Struktur_54$Topic6$ci_upper
 
-# create plot (with 95th, 90th, and 85th percentile) and save as pdf
-pdf(file = "../plots/stanbeta_t6_959085.pdf", width = 9, height = 7.5)
+# create plot (with 95th, 90th, and 85th percentile) and save as jpeg
+jpeg(file = "../plots/stanbeta_t6_959085.jpeg", width = 9*300, height = 7.5*300, units = "px", res = 300)
 
 for(v in setdiff(varlist, c("Partei", "Bundesland"))){
   plot_nam <- paste0("plot_betabayes_", v)
@@ -341,14 +403,14 @@ for(v in setdiff(varlist, c("Partei", "Bundesland"))){
            geom_ribbon(data = df_smoothed_ci, aes(x = v, ymin = ci_lower_85, ymax = ci_upper_85), 
                        fill = "grey40") +
            geom_smooth(data = preds_beta_bayes_95[[v]]$Topic6, aes(x = !!as.symbol(v), y = proportion),
-                       color = "black", method = "loess", se = FALSE, size = 0.8) +
-           ylab("topic proportion") +
+                       color = "black", method = "loess", se = FALSE, linewidth = 0.8) +
+           ylab("Expected Topic Proportion") +
            xlab(varlist_fullnames[varlist==v]) + 
            scale_x_continuous(labels = scales::comma) +
            theme(axis.text.x = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.x = element_text(size = 18, face = "bold"),
+                 axis.title.x = element_text(size = 18),
                  axis.text.y = element_text(vjust = 1, size = 14, hjust = 1),
-                 axis.title.y = element_text(size = 18, face = "bold")))
+                 axis.title.y = element_text(size = 18)))
 }
 
 ## change axis labeling for time effects
@@ -356,9 +418,11 @@ ticks_date <- data.frame(breaks = c(1,13,25), labels = 0)
 for (i in ticks_date$breaks) ticks_date[ticks_date["breaks"]==i, "labels"] <- 
   (data$meta$Datum[which(data$meta$t == i)] %>% unique)
 plot_betabayes_Date <- plot_betabayes_t + 
-  scale_x_continuous(name = "date", breaks = ticks_date$breaks, labels = ticks_date$labels)
+  scale_x_continuous(name = "Date", breaks = ticks_date$breaks, labels = ticks_date$labels)
 ## combine all plots
 gridExtra::grid.arrange(plot_betabayes_Date, plot_betabayes_Struktur_4, 
-                        plot_betabayes_Struktur_22, plot_betabayes_Struktur_42, ncol=2)
+                        plot_betabayes_Struktur_22, plot_betabayes_Struktur_42,
+                        ncol=2,
+                        top = textGrob(topic_names[topic], gp = gpar(fontsize = 20, fontface = "bold")))
 
 dev.off()
